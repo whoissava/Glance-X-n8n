@@ -2,6 +2,8 @@
 # 📦 Glance × n8n Plugin
 
 This directory collects a series of custom plugins for n8n, designed to extend the functionality of Glance.
+
+Remember to put your data like ip or credentials to the http request 
 ---
 
 ## 📂 Disk space
