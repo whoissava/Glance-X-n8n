@@ -6,9 +6,11 @@
 
 ## 📂 Disk space
 
-- [`sonarr-diskspace.json`](https://github.com/whoissava/Glance-X-n8n/blob/main/sonarr-diskspace.json)  
-
-This plugin enables you to visualize disk usage from **Sonarr** in your **Glance dashboard**, powered by **n8n** automations. It fetches real-time disk space data using the Sonarr API and presents it in a clean, interactive format.
+1. Download the [`sonarr-diskspace.json`](https://github.com/whoissava/Glance-X-n8n/blob/main/sonarr-diskspace.json) file
+2. In your n8n dashboard, go to Workflows → Import From File
+3. Upload the downloaded JSON file
+4. Configure your Sonarr credentials in the HTTP Request node
+5. Add .Yaml Config to Glance 
 
 
 <details>
@@ -50,3 +52,5 @@ This plugin enables you to visualize disk usage from **Sonarr** in your **Glance
       </ul>
   ```
 </details>
+
+Built by Sava, for the community.
