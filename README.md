@@ -110,7 +110,7 @@ Remember to put your data like ip or credentials to the http request
                     {{- else }}
                       <div style="width:50px; height:75px; background:#444; border-radius:4px;"></div>
                     {{- end }}
-                    <div class="grow min-width-0">
+                    <div class="grow min-width-0" style="margin-left: 1.5rem;">
                       <div class="size-h5 color-highlight block text-truncate">{{ $title }}</div>
                       <ul class="list-horizontal-text">
                         <li>Uscita: {{ slice $date 0 10 }}</li>
@@ -191,7 +191,7 @@ Remember to put your data like ip or credentials to the http request
                         {{- else }}
                           <div style="width:50px; height:75px; background:#444; border-radius:4px;"></div>
                         {{- end }}
-                        <div class="grow min-width-0">
+                        <div class="grow min-width-0" style="margin-left: 1.5rem;">
                           <div class="size-h5 color-highlight block text-truncate">{{ $series }}</div>
                           <ul class="list-horizontal-text">
                             <li>S{{ printf "%02d" $season }}E{{ printf "%02d" $ep }}</li>
