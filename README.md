@@ -122,7 +122,7 @@ This directory collects a series of custom plugins for n8n, designed to extend t
 
 
         - type: custom-api
-          title: Sonarr – Prossime Uscite
+          title: Sonarr – Coming soon
           cache: 30m
           url: N8N Webhook 
           headers: {}
