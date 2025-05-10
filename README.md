@@ -14,7 +14,7 @@
 
 
 <details>
-  <summary><strong>▶ YAML Configuration for Glance</strong></summary>
+  <summary><strong> YAML Configuration for Glance</strong></summary>
   
   ```yaml
   - type: custom-api
