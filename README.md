@@ -6,6 +6,10 @@ This directory collects a series of custom plugins for n8n, designed to extend t
 
 ## 📂 Disk space
 
+![image](https://github.com/user-attachments/assets/b0aa3f1f-876a-4cc6-aa32-df32d9d0cb03)
+
+
+
 1. Download the [`sonarr-diskspace.json`](https://github.com/whoissava/Glance-X-n8n/blob/main/sonarr-diskspace.json) file
 2. In your n8n dashboard, go to Workflows → Import From File
 3. Upload the downloaded JSON file
