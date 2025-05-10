@@ -5,15 +5,12 @@ This plugin enables you to visualize disk usage from **Sonarr** in your **Glance
 
 ---
 
-## 📂 Files in This Repository
+## 📂 Disk space
 
 - [`sonarr-diskspace.json`](https://github.com/whoissava/Glance-X-n8n/blob/main/sonarr-diskspace.json)  
   An n8n workflow file to fetch and process disk space data from Sonarr.
 
-## 📂 Files in This Repository
 
-- `sonarr-diskspace.json`  
-  An n8n workflow file to fetch and process disk space data from Sonarr.
 
 <details>
   <summary><strong>▶ YAML Configuration for Glance</strong></summary>
