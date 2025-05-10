@@ -1,15 +1,14 @@
 
 # 📦 Glance × n8n Plugin – Disk Space Monitor
 
-This plugin enables you to visualize disk usage from **Sonarr** in your **Glance dashboard**, powered by **n8n** automations. It fetches real-time disk space data using the Sonarr API and presents it in a clean, interactive format.
 
 ---
 
 ## 📂 Disk space
 
 - [`sonarr-diskspace.json`](https://github.com/whoissava/Glance-X-n8n/blob/main/sonarr-diskspace.json)  
-  An n8n workflow file to fetch and process disk space data from Sonarr.
 
+This plugin enables you to visualize disk usage from **Sonarr** in your **Glance dashboard**, powered by **n8n** automations. It fetches real-time disk space data using the Sonarr API and presents it in a clean, interactive format.
 
 
 <details>
