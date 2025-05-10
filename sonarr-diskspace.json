@@ -1,0 +1,117 @@
+{
+  "name": "Sonarr",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "http://IP:8989/api/v3/diskspace?apikey=APIKEY",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        80,
+        -180
+      ],
+      "id": "a986f3cf-1981-4967-93aa-db8b8b5c28b9",
+      "name": "HTTP Request",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Elimina il wrapper \"json: {}\" e restituisci direttamente l'array\nreturn items.map(item => {\n  const data = item.json;\n  const free = parseFloat(data.freeSpace);\n  const total = parseFloat(data.totalSpace);\n  \n\n  // Restituisci l'oggetto direttamente, senza {\"json\": ...}\n  return {\n    path: data.path,\n    label: data.label,\n    freeSpaceGB: isNaN(free) ? \"0.00\" : (free / (1024 ** 3)).toFixed(2),\n    totalSpaceGB: isNaN(total) ? \"0.00\" : (total / (1024 ** 3)).toFixed(2)\n  };\n});\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        380,
+        -20
+      ],
+      "id": "d3896559-fe8c-4b42-9a7a-70df8986bbc0",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "multipleMethods": true,
+        "path": "6781c7a4-66f7-444e-ba00-06d9e966a0ab",
+        "responseMode": "lastNode",
+        "responseData": "firstEntryBinary",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -180,
+        -180
+      ],
+      "id": "ec002982-e236-4e84-97f5-79ae7fe0ae7f",
+      "name": "Webhook",
+      "webhookId": "6781c7a4-66f7-444e-ba00-06d9e966a0ab"
+    },
+    {
+      "parameters": {
+        "operation": "toJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        500,
+        -160
+      ],
+      "id": "d01d782e-fe4a-4ed1-83c6-89b6125c7339",
+      "name": "Convert to File"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "926de157-ea95-47f4-879d-243ff712915f",
+  "meta": {
+    "instanceId": "328c3bc4728cb24bfb35790315d9c07355444c75b2f40b74894a4cc6cefcfd97"
+  },
+  "id": "lZF9pMcSzK80RD2c",
+  "tags": []
+}
