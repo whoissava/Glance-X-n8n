@@ -1,5 +1,5 @@
 
-# 📦 Glance × n8n Plugin – Disk Space Monitor
+# 📦 Glance × n8n Plugin
 
 
 ---
