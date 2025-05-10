@@ -57,4 +57,7 @@ This directory collects a series of custom plugins for n8n, designed to extend t
   ```
 </details>
 
+
+## 📂 Nextup sonarr / radarr
+
 Built by Sava, for the community.
