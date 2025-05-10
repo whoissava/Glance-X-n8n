@@ -1,0 +1,131 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "radarr-calendar",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook (Trigger Manuale)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        160
+      ],
+      "webhookId": "2d78c8c6-1f55-43ab-b381-3a5cbdc2e1b0",
+      "id": "d496e3a8-5770-4a7f-b3e0-bee5761fdc83"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calcola data corrente come punto di partenza\nconst now = new Date();\n\n// Formatta data iniziale nel formato YYYY-MM-DDTHH:MM:SSZ\nconst start = now.toISOString().split('.')[0] + 'Z';\n\n// Calcola data finale (30 giorni dopo - per film utilizziamo un periodo più lungo)\nconst endDate = new Date();\nendDate.setDate(now.getDate() + 30);\n\n// Formatta data finale nel formato YYYY-MM-DDTHH:MM:SSZ\nconst end = endDate.toISOString().split('.')[0] + 'Z';\n\n// Output le date con il formato esatto richiesto dall'API\nreturn [{ json: { start, end } }];"
+      },
+      "name": "Calcola Date",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        80
+      ],
+      "id": "426a9a6d-6869-4043-87ec-5983cf0ee90f"
+    },
+    {
+      "parameters": {
+        "url": "http:/YOUR-IP:7878/api/v3/calendar",
+        "options": {},
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "X-Api-Key",
+              "value": "apikey"
+            }
+          ]
+        },
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "start",
+              "value": "={{ $node[\"Calcola Date\"].json.start }}"
+            },
+            {
+              "name": "end",
+              "value": "={{ $node[\"Calcola Date\"].json.end }}"
+            },
+            {
+              "name": "includeUnmonitored",
+              "value": "false"
+            }
+          ]
+        }
+      },
+      "name": "Get Radarr Calendar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        400,
+        80
+      ],
+      "id": "660fb971-a277-4d76-a4c0-a6d72232f452"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Risposta al Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        560,
+        80
+      ],
+      "id": "8916e430-0c1d-43eb-a250-a97e16998491"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook (Trigger Manuale)": {
+      "main": [
+        [
+          {
+            "node": "Calcola Date",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcola Date": {
+      "main": [
+        [
+          {
+            "node": "Get Radarr Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Radarr Calendar": {
+      "main": [
+        [
+          {
+            "node": "Risposta al Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6bf55c2a-8528-424c-8952-a87f285aad7b",
+  "meta": {
+    "instanceId": "328c3bc4728cb24bfb35790315d9c07355444c75b2f40b74894a4cc6cefcfd97"
+  },
+  "id": "KDx4FPZZzQtqcFlX",
+  "tags": []
+}

@@ -1,0 +1,145 @@
+{
+  "name": "sonarr-calendar",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "sonarr-calendar",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        260,
+        120
+      ],
+      "webhookId": "1c67c7c5-9a44-44bd-a2ac-2a4cbdc0d8b0",
+      "id": "cc7a7864-5a8e-4493-972e-d8310981dfec"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calcola data corrente come punto di partenza\nconst now = new Date();\n\n// Formatta data iniziale nel formato YYYY-MM-DDTHH:MM:SSZ\nconst start = now.toISOString().split('.')[0] + 'Z';\n\n// Calcola data finale (7 giorni dopo)\nconst endDate = new Date();\nendDate.setDate(now.getDate() + 7);\n\n// Formatta data finale nel formato YYYY-MM-DDTHH:MM:SSZ\nconst end = endDate.toISOString().split('.')[0] + 'Z';\n\n// Output le date con il formato esatto richiesto dall'API\nreturn [{ json: { start, end } }];"
+      },
+      "name": "Calcola Date",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        160
+      ],
+      "id": "c797febb-1d6c-4295-809a-475ab58f39c8"
+    },
+    {
+      "parameters": {
+        "url": "http://yourip:8989/api/v3/calendar",
+        "options": {},
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "X-Api-Key",
+              "value": "yourapikey"
+            }
+          ]
+        },
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "start",
+              "value": "={{ $node[\"Calcola Date\"].json.start }}"
+            },
+            {
+              "name": "end",
+              "value": "={{ $node[\"Calcola Date\"].json.end }}"
+            },
+            {
+              "name": "unmonitored",
+              "value": "false"
+            },
+            {
+              "name": "includeSeries",
+              "value": "true"
+            },
+            {
+              "name": "includeEpisodeFile",
+              "value": "true"
+            },
+            {
+              "name": "includeEpisodeImages",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "name": "Get Sonarr Calendar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        680,
+        180
+      ],
+      "id": "7247ade6-dbfb-42d5-bc9e-8d7d08c4d44c"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Risposta al Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        880,
+        160
+      ],
+      "id": "0431ad4f-8027-4651-8bb3-d8643659e4ca"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Calcola Date",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcola Date": {
+      "main": [
+        [
+          {
+            "node": "Get Sonarr Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Sonarr Calendar": {
+      "main": [
+        [
+          {
+            "node": "Risposta al Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "066c9982-4401-42ba-bd66-40364513da32",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "328c3bc4728cb24bfb35790315d9c07355444c75b2f40b74894a4cc6cefcfd97"
+  },
+  "id": "VsW8fefTSUlfgKJT",
+  "tags": []
+}
