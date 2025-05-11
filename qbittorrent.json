@@ -1,0 +1,225 @@
+{
+  "name": "My workflow 3",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "get-torrents",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        1740,
+        140
+      ],
+      "id": "2399fd08-f4c3-4035-95a3-adba6aaa2d08",
+      "webhookId": "852b284c-ff19-4db7-9c21-a9ef166e6268"
+    },
+    {
+      "parameters": {},
+      "name": "When clicking 'Execute Workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        1740,
+        340
+      ],
+      "id": "91ffea8d-125d-4b57-bf17-28ab16baef15"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://Your-ip:8080/api/v2/auth/login",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Referer",
+              "value": "http://YOUR-IP:8080"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "username",
+              "value": "admin"
+            },
+            {
+              "name": "password",
+              "value": "adminadmin"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          },
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "name": "qBittorrent Login",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1940,
+        140
+      ],
+      "id": "fb86611c-6389-454e-abc7-19a13cf77f90"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extract SID from cookies and trim whitespace\nconst response = $input.item.json;\nconst cookies = response.headers['set-cookie'];\nif (!cookies) throw new Error('No cookies found');\nlet sid = '';\nfor (const c of cookies) {\n  const m = c.match(/SID=([^;]+)/);\n  if (m) { sid = m[1].trim(); break; }\n}\nif (!sid) throw new Error('SID not extracted');\nreturn { json: { sid } };"
+      },
+      "name": "Extract SID",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        2140,
+        140
+      ],
+      "id": "1de053cf-f441-4235-8811-d74760b90bc6"
+    },
+    {
+      "parameters": {
+        "url": "http://YOUR-IP:8080/api/v2/torrents/info",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={\n  \"Referer\": \"http://YOUR-IP:8080\",\n  \"Cookie\": \"{{ 'SID=' + $node['Extract SID'].json['sid'] }}\"\n}\n",
+        "options": {}
+      },
+      "name": "Get Torrents",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        2340,
+        140
+      ],
+      "id": "c4597863-652a-491c-a14e-765db9cbd903"
+    },
+    {
+      "parameters": {
+        "functionCode": "// raccogli tutto l’input\nconst inputs = $input.all();\n\n// caso A: il primo item.json è già un array di torrent\nif (Array.isArray(inputs[0].json)) {\n  var torrents = inputs[0].json;\n}\n// caso B: ogni item.json è un singolo torrent (split‑into‑items)\nelse if (inputs.every(i => i.json && i.json.name && i.json.state)) {\n  var torrents = inputs.map(i => i.json);\n}\n// caso C: il primo item.json contiene un campo 'torrents' o 'data'\nelse if (Array.isArray(inputs[0].json.torrents)) {\n  var torrents = inputs[0].json.torrents;\n} else if (Array.isArray(inputs[0].json.data)) {\n  var torrents = inputs[0].json.data;\n} else {\n  console.log(\"Unrecognized shape:\", JSON.stringify(inputs, null, 2));\n  var torrents = [];\n}\n\n// ora la logica di raggruppamento\nconst statusGroups = { downloading: [], completed: [], paused: [], errored: [], others: [] };\nlet dl=0, ul=0;\nfor (const t of torrents) {\n  dl += t.dlspeed||0; ul += t.upspeed||0;\n  if (t.state==='downloading') statusGroups.downloading.push(t);\n  else if (['pausedDL','pausedUP'].includes(t.state)) statusGroups.paused.push(t);\n  else if (['error','missingFiles'].includes(t.state)) statusGroups.errored.push(t);\n  else if (t.state==='uploading'||t.progress===1) statusGroups.completed.push(t);\n  else statusGroups.others.push(t);\n}\nfunction fmt(b){ if(b<1024)return b+' B/s'; if(b<1024*1024)return (b/1024).toFixed(2)+' KB/s'; return (b/(1024*1024)).toFixed(2)+' MB/s'; }\nfunction pf(p){return (p*100).toFixed(2)+'%';}\nfunction secToStr(s){ if(s<0||s===8640000)return 'Unknown'; let d=Math.floor(s/86400);s%=86400;let h=Math.floor(s/3600);s%=3600;let m=Math.floor(s/60);s%=60;let r=''; if(d)r+=d+'d '; if(h||d)r+=h+'h '; if(m||h||d)r+=m+'m '; return r+s+'s'; }\n\nconst downloadingDetails = statusGroups.downloading.map(t=>({\n  name: t.name,\n  progress: pf(t.progress),\n  size: t.size,\n  downloadSpeed: fmt(t.dlspeed),\n  eta: secToStr(t.eta),\n  state: t.state\n}));\n\nreturn {\n  summary: {\n    total: torrents.length,\n    downloading: statusGroups.downloading.length,\n    completed: statusGroups.completed.length,\n    paused: statusGroups.paused.length,\n    errored: statusGroups.errored.length,\n    others: statusGroups.others.length,\n    totalDownloadSpeed: fmt(dl),\n    totalUploadSpeed: fmt(ul),\n  },\n  downloading: downloadingDetails,\n  timestamp: new Date().toISOString()\n};\n"
+      },
+      "name": "Process Torrents",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        2540,
+        160
+      ],
+      "id": "acf79ee9-4ec1-42b1-b0db-e2c872e75b62"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$node[\"Process Torrents\"].json}}",
+        "options": {}
+      },
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2940,
+        40
+      ],
+      "id": "f6fbcf52-cbaa-42f5-b65a-66ac034fe086"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "qBittorrent Login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking 'Execute Workflow'": {
+      "main": [
+        [
+          {
+            "node": "qBittorrent Login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "qBittorrent Login": {
+      "main": [
+        [
+          {
+            "node": "Extract SID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract SID": {
+      "main": [
+        [
+          {
+            "node": "Get Torrents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Torrents": {
+      "main": [
+        [
+          {
+            "node": "Process Torrents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Torrents": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9f0ce3ae-25b1-47c6-bc9d-973f664c14a8",
+  "meta": {
+    "instanceId": "328c3bc4728cb24bfb35790315d9c07355444c75b2f40b74894a4cc6cefcfd97"
+  },
+  "id": "3YW4eaCVhwYqMKLd",
+  "tags": []
+}
