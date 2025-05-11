@@ -208,4 +208,44 @@ Remember to put your data like ip or credentials to the http request
   ```
 </details>
 
+## 📂 qBittorrent Tracker
+
+1. Download the
+[`qbittorrent.json`](https://github.com/whoissava/Glance-X-n8n/blob/main/qbittorrent.json)file
+2. In your n8n dashboard, go to Workflows → Import From File
+3. Upload the downloaded JSON file
+4. Configure your ip in the HTTP Request node
+5. Add .Yaml Config to Glance 
+
+
+<details>
+  <summary><strong> YAML Configuration for Glance</strong></summary>
+  
+  ```yaml
+
+        - type: custom-api
+          title: "Download In Corso"
+          cache: 5m
+          url: n8n webhook
+          template: |
+            <h3 style="font-size: 1.5rem; margin-bottom: 1rem;">Download in corso ({{ .JSON.Int "summary.downloading" }})</h3>
+            <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 1rem;">
+            {{ range .JSON.Array "downloading" }}
+              <li style="background: #1e1e2f; padding: 1rem; border-radius: 0.75rem; box-shadow: 0 0 10px rgba(0,0,0,0.2);">
+                <strong style="font-size: 1.1rem;">{{ .String "name" }}</strong>
+                <div style="margin-top: 0.5rem; background: #333; border-radius: 10px; overflow: hidden;">
+                  <div style="width: {{ .String "progress" }}; background: #4caf50; height: 10px;"></div>
+                </div>
+                <div style="margin-top: 0.5rem; font-size: 0.9rem; color: #ccc;">
+                  Progress: <span style="color: #fff;">{{ .String "progress" }}</span><br/>
+                  Velocità: <span style="color: #00c3ff;">{{ .String "downloadSpeed" }}</span>
+                </div>
+              </li>
+            {{ else }}
+              <li style="color: #ccc;">Nessun download in corso</li>
+            {{ end }}
+            </ul>
+
+  ```
+</details>
 Built by Sava, for the community.
