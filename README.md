@@ -2,6 +2,7 @@
 # 📦 Glance × n8n Plugin
 
 This directory collects a series of custom plugins for n8n, designed to extend the functionality of Glance.
+
 If you need plugins without N8N, check [`this`](https://github.com/whoissava/Glance-Plugin) 
 
 Remember to put your data like ip or credentials to the http request 
