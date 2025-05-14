@@ -1,5 +1,5 @@
 {
-  "name": "My workflow 3",
+  "name": "torrent",
   "nodes": [
     {
       "parameters": {
@@ -11,10 +11,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
       "position": [
-        1740,
-        140
+        -1200,
+        100
       ],
-      "id": "2399fd08-f4c3-4035-95a3-adba6aaa2d08",
+      "id": "b88683ae-4cc0-4b80-a9c2-2197b8357d3b",
       "webhookId": "852b284c-ff19-4db7-9c21-a9ef166e6268"
     },
     {
@@ -23,15 +23,15 @@
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        1740,
-        340
+        -1200,
+        300
       ],
-      "id": "91ffea8d-125d-4b57-bf17-28ab16baef15"
+      "id": "3073ae3e-48f0-4e7f-9b8c-8a252c37e907"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "http://Your-ip:8080/api/v2/auth/login",
+        "url": "http://YOUR-IP:8080/api/v2/auth/login",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -74,10 +74,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        1940,
-        140
+        -1000,
+        100
       ],
-      "id": "fb86611c-6389-454e-abc7-19a13cf77f90"
+      "id": "031efa56-4d0e-435a-9245-035e22678b93"
     },
     {
       "parameters": {
@@ -87,14 +87,14 @@
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        2140,
-        140
+        -800,
+        100
       ],
-      "id": "1de053cf-f441-4235-8811-d74760b90bc6"
+      "id": "4d45c99f-76c8-4161-b6f4-092a66ae2315"
     },
     {
       "parameters": {
-        "url": "http://YOUR-IP:8080/api/v2/torrents/info",
+        "url": "http://YOUR-ip:8080/api/v2/torrents/info",
         "sendHeaders": true,
         "specifyHeaders": "json",
         "jsonHeaders": "={\n  \"Referer\": \"http://YOUR-IP:8080\",\n  \"Cookie\": \"{{ 'SID=' + $node['Extract SID'].json['sid'] }}\"\n}\n",
@@ -104,23 +104,23 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        2340,
-        140
+        -600,
+        100
       ],
-      "id": "c4597863-652a-491c-a14e-765db9cbd903"
+      "id": "6004a10c-5d48-4c99-a754-879ae1d3b7bb"
     },
     {
       "parameters": {
-        "functionCode": "// raccogli tutto l’input\nconst inputs = $input.all();\n\n// caso A: il primo item.json è già un array di torrent\nif (Array.isArray(inputs[0].json)) {\n  var torrents = inputs[0].json;\n}\n// caso B: ogni item.json è un singolo torrent (split‑into‑items)\nelse if (inputs.every(i => i.json && i.json.name && i.json.state)) {\n  var torrents = inputs.map(i => i.json);\n}\n// caso C: il primo item.json contiene un campo 'torrents' o 'data'\nelse if (Array.isArray(inputs[0].json.torrents)) {\n  var torrents = inputs[0].json.torrents;\n} else if (Array.isArray(inputs[0].json.data)) {\n  var torrents = inputs[0].json.data;\n} else {\n  console.log(\"Unrecognized shape:\", JSON.stringify(inputs, null, 2));\n  var torrents = [];\n}\n\n// ora la logica di raggruppamento\nconst statusGroups = { downloading: [], completed: [], paused: [], errored: [], others: [] };\nlet dl=0, ul=0;\nfor (const t of torrents) {\n  dl += t.dlspeed||0; ul += t.upspeed||0;\n  if (t.state==='downloading') statusGroups.downloading.push(t);\n  else if (['pausedDL','pausedUP'].includes(t.state)) statusGroups.paused.push(t);\n  else if (['error','missingFiles'].includes(t.state)) statusGroups.errored.push(t);\n  else if (t.state==='uploading'||t.progress===1) statusGroups.completed.push(t);\n  else statusGroups.others.push(t);\n}\nfunction fmt(b){ if(b<1024)return b+' B/s'; if(b<1024*1024)return (b/1024).toFixed(2)+' KB/s'; return (b/(1024*1024)).toFixed(2)+' MB/s'; }\nfunction pf(p){return (p*100).toFixed(2)+'%';}\nfunction secToStr(s){ if(s<0||s===8640000)return 'Unknown'; let d=Math.floor(s/86400);s%=86400;let h=Math.floor(s/3600);s%=3600;let m=Math.floor(s/60);s%=60;let r=''; if(d)r+=d+'d '; if(h||d)r+=h+'h '; if(m||h||d)r+=m+'m '; return r+s+'s'; }\n\nconst downloadingDetails = statusGroups.downloading.map(t=>({\n  name: t.name,\n  progress: pf(t.progress),\n  size: t.size,\n  downloadSpeed: fmt(t.dlspeed),\n  eta: secToStr(t.eta),\n  state: t.state\n}));\n\nreturn {\n  summary: {\n    total: torrents.length,\n    downloading: statusGroups.downloading.length,\n    completed: statusGroups.completed.length,\n    paused: statusGroups.paused.length,\n    errored: statusGroups.errored.length,\n    others: statusGroups.others.length,\n    totalDownloadSpeed: fmt(dl),\n    totalUploadSpeed: fmt(ul),\n  },\n  downloading: downloadingDetails,\n  timestamp: new Date().toISOString()\n};\n"
+        "functionCode": "// raccogli tutto l'input\nconst inputs = $input.all();\n\n// caso A: il primo item.json è già un array di torrent\nif (Array.isArray(inputs[0].json)) {\n  var torrents = inputs[0].json;\n}\n// caso B: ogni item.json è un singolo torrent (split‑into‑items)\nelse if (inputs.every(i => i.json && i.json.name && i.json.state)) {\n  var torrents = inputs.map(i => i.json);\n}\n// caso C: il primo item.json contiene un campo 'torrents' o 'data'\nelse if (Array.isArray(inputs[0].json.torrents)) {\n  var torrents = inputs[0].json.torrents;\n} else if (Array.isArray(inputs[0].json.data)) {\n  var torrents = inputs[0].json.data;\n} else {\n  console.log(\"Unrecognized shape:\", JSON.stringify(inputs, null, 2));\n  var torrents = [];\n}\n\n// ora la logica di raggruppamento\nconst statusGroups = { \n  downloading: [], \n  completed: [], \n  paused: [], \n  seeding: [],\n  stopped: [],\n  errored: [], \n  others: [] \n};\n\nlet dl=0, ul=0;\nfor (const t of torrents) {\n  dl += t.dlspeed||0; ul += t.upspeed||0;\n  \n  if (t.state === 'downloading') {\n    statusGroups.downloading.push(t);\n  }\n  else if (t.state === 'stalledUP' || t.state === 'uploading') {\n    statusGroups.seeding.push(t);\n  }\n  else if (t.state === 'stalledDL' || t.state === 'metaDL') {\n    statusGroups.stopped.push(t);\n  }\n  else if (['pausedDL','pausedUP'].includes(t.state)) {\n    statusGroups.paused.push(t);\n  }\n  else if (['error','missingFiles'].includes(t.state)) {\n    statusGroups.errored.push(t);\n  }\n  else if (t.progress === 1 && t.state !== 'uploading' && t.state !== 'stalledUP') {\n    statusGroups.completed.push(t);\n  }\n  else {\n    statusGroups.others.push(t);\n  }\n}\n\nfunction fmt(b){ if(b<1024)return b+' B/s'; if(b<1024*1024)return (b/1024).toFixed(2)+' KB/s'; return (b/(1024*1024)).toFixed(2)+' MB/s'; }\nfunction pf(p){return (p*100).toFixed(2)+'%';}\nfunction secToStr(s){ if(s<0||s===8640000)return 'Unknown'; let d=Math.floor(s/86400);s%=86400;let h=Math.floor(s/3600);s%=3600;let m=Math.floor(s/60);s%=60;let r=''; if(d)r+=d+'d '; if(h||d)r+=h+'h '; if(m||h||d)r+=m+'m '; return r+s+'s'; }\n\n// Ordina i torrent in base a added_on (dal più recente al meno recente)\nstatusGroups.downloading.sort((a, b) => (b.added_on || 0) - (a.added_on || 0));\nstatusGroups.seeding.sort((a, b) => (b.added_on || 0) - (a.added_on || 0));\nstatusGroups.completed.sort((a, b) => (b.added_on || 0) - (a.added_on || 0));\nstatusGroups.stopped.sort((a, b) => (b.added_on || 0) - (a.added_on || 0));\nstatusGroups.errored.sort((a, b) => (b.added_on || 0) - (a.added_on || 0));\n\n// Limita a 10 elementi per categoria\nconst downloadingDetails = statusGroups.downloading.slice(0, 10).map(t=>({\n  name: t.name,\n  progress: pf(t.progress),\n  size: t.size,\n  downloadSpeed: fmt(t.dlspeed),\n  eta: secToStr(t.eta),\n  state: t.state,\n  added_on: new Date(t.added_on * 1000).toISOString()\n}));\n\nconst seedingDetails = statusGroups.seeding.slice(0, 10).map(t=>({\n  name: t.name,\n  size: t.size,\n  uploadSpeed: fmt(t.upspeed),\n  ratio: t.ratio.toFixed(2),\n  state: t.state,\n  added_on: new Date(t.added_on * 1000).toISOString()\n}));\n\nconst completedDetails = statusGroups.completed.slice(0, 10).map(t=>({\n  name: t.name,\n  size: t.size,\n  ratio: t.ratio.toFixed(2),\n  state: t.state,\n  added_on: new Date(t.added_on * 1000).toISOString()\n}));\n\nconst stoppedDetails = statusGroups.stopped.slice(0, 10).map(t=>({\n  name: t.name,\n  progress: pf(t.progress),\n  size: t.size,\n  state: t.state,\n  added_on: new Date(t.added_on * 1000).toISOString()\n}));\n\nconst erroredDetails = statusGroups.errored.slice(0, 10).map(t=>({\n  name: t.name,\n  progress: pf(t.progress),\n  size: t.size,\n  state: t.state,\n  added_on: new Date(t.added_on * 1000).toISOString()\n}));\n\nreturn {\n  summary: {\n    total: torrents.length,\n    downloading: statusGroups.downloading.length,\n    seeding: statusGroups.seeding.length,\n    stopped: statusGroups.stopped.length,\n    completed: statusGroups.completed.length,\n    paused: statusGroups.paused.length,\n    errored: statusGroups.errored.length,\n    others: statusGroups.others.length,\n    totalDownloadSpeed: fmt(dl),\n    totalUploadSpeed: fmt(ul),\n  },\n  downloading: downloadingDetails,\n  seeding: seedingDetails,\n  completed: completedDetails,\n  stopped: stoppedDetails,\n  errored: erroredDetails,\n  timestamp: new Date().toISOString()\n};"
       },
       "name": "Process Torrents",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        2540,
-        160
+        -400,
+        120
       ],
-      "id": "acf79ee9-4ec1-42b1-b0db-e2c872e75b62"
+      "id": "b4b1b951-1dd1-463f-befd-3570ead28017"
     },
     {
       "parameters": {
@@ -132,10 +132,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        2940,
-        40
+        0,
+        0
       ],
-      "id": "f6fbcf52-cbaa-42f5-b65a-66ac034fe086"
+      "id": "47462c30-32fd-4890-a516-6f7fe047d461"
     }
   ],
   "pinData": {},
@@ -205,21 +205,16 @@
           }
         ]
       ]
-    },
-    "Respond to Webhook": {
-      "main": [
-        []
-      ]
     }
   },
   "active": true,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "9f0ce3ae-25b1-47c6-bc9d-973f664c14a8",
+  "versionId": "55554f66-6e7f-42e8-97a3-a4784829141c",
   "meta": {
-    "instanceId": "328c3bc4728cb24bfb35790315d9c07355444c75b2f40b74894a4cc6cefcfd97"
+    "instanceId": "353d63965fb91315aee01d430a5a4b0ffda233e14b2e5efa4f65f95eef93d0e5"
   },
-  "id": "3YW4eaCVhwYqMKLd",
+  "id": "xmTRKDiNf26KKtMc",
   "tags": []
 }
