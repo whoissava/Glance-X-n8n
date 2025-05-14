@@ -212,6 +212,9 @@ Remember to put your data like ip or credentials to the http request
 
 ## 📂 qBittorrent Tracker
 
+![image](https://github.com/user-attachments/assets/35cab417-be3c-4533-ba15-8470b5a0406e)
+
+
 1. Download the
 [`qbittorrent.json`](https://github.com/whoissava/Glance-X-n8n/blob/main/qbittorrent.json)file
 2. In your n8n dashboard, go to Workflows → Import From File
@@ -224,10 +227,71 @@ Remember to put your data like ip or credentials to the http request
   <summary><strong> YAML Configuration for Glance</strong></summary>
   
   ```yaml
+      - type: group    #aaaaaaaaa   
+        widgets:
+        - type: custom-api
+          title: "Status"
+          cache: 5m
+          url: n8n webhook
+          template: |
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; text-align: center;">
+              
+              <!-- BLOCCO 1: ATTIVI -->
+              <div>
+                <div style="font-size: 1.5rem; font-weight: bold;">{{ .JSON.Int "summary.downloading" }}</div>
+                <div style="opacity: 0.7;">Attivi</div>
+                <div style="display: flex; justify-content: space-around; font-size: 0.8rem; margin-top: 0.5rem;">
+                  <div>
+                    <div>{{ .JSON.Int "summary.paused" }}</div>
+                    <div style="opacity: 0.6;">Pausa</div>
+                  </div>
+                  <div>
+                    <div>{{ .JSON.Int "summary.stopped" }}</div>
+                    <div style="opacity: 0.6;">Stop</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- BLOCCO 2: TOTALE -->
+              <div>
+                <div style="font-size: 1.5rem; font-weight: bold;">{{ .JSON.Int "summary.total" }}</div>
+                <div style="opacity: 0.7;">Totale</div>
+                <div style="display: flex; justify-content: space-around; font-size: 0.8rem; margin-top: 0.5rem;">
+                  <div>
+                    <div>{{ .JSON.Int "summary.seeding" }}</div>
+                    <div style="opacity: 0.6;">Seed</div>
+                  </div>
+                  <div>
+                    <div>{{ .JSON.Int "summary.completed" }}</div>
+                    <div style="opacity: 0.6;">Completati</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- BLOCCO 3: ERRORI + ALTRI -->
+              <div>
+                <div style="font-size: 1.5rem; font-weight: bold;">{{ .JSON.Int "summary.errored" }}</div>
+                <div style="opacity: 0.7;">Errori</div>
+                <div style="display: flex; justify-content: center; font-size: 0.8rem; margin-top: 0.5rem;">
+                  <div>
+                    <div>{{ .JSON.Int "summary.others" }}</div>
+                    <div style="opacity: 0.6;">Altri</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- FOOTER: VELOCITÀ -->
+            <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.1); text-align: center; font-size: 0.9rem; opacity: 0.8;">
+              ↓ Download: <strong>{{ .JSON.String "summary.totalDownloadSpeed" }}</strong> &nbsp; | &nbsp;
+              ↑ Upload: <strong>{{ .JSON.String "summary.totalUploadSpeed" }}</strong>
+            </div>
+
 
         - type: custom-api
-          title: "Download In Corso"
-          cache: 5m
+          title: "Downloading"
+          cache: 30s
           url: n8n webhook
           template: |
             <h3 style="font-size: 1.5rem; margin-bottom: 1rem;">Download in corso ({{ .JSON.Int "summary.downloading" }})</h3>
@@ -246,6 +310,66 @@ Remember to put your data like ip or credentials to the http request
             {{ else }}
               <li style="color: #ccc;">Nessun download in corso</li>
             {{ end }}
+            </ul>
+
+        - type: custom-api
+          title: "Seed"
+          cache: 5m
+          url: n8n webhook
+          template: |
+            <h3 style="font-size: 1.5rem; margin-bottom: 1rem;">In Seed ({{ .JSON.Int "summary.seeding" }})</h3>
+            <ul class="list list-gap-14 collapsible-container" data-collapse-after="1" style="padding: 0;">
+            {{ range .JSON.Array "seeding" }}
+              <li style="background: #1e1e2f; padding: 1rem; border-radius: 0.75rem; box-shadow: 0 0 10px rgba(0,0,0,0.2); list-style: none;">
+                <strong style="font-size: 1.1rem;">{{ .String "name" }}</strong>
+                <div style="margin-top: 0.5rem; font-size: 0.9rem; color: #ccc;">
+                  Upload: <span style="color: #00ff94;">{{ .String "uploadSpeed" }}</span><br/>
+                  Ratio: <span style="color: #ffd700;">{{ .String "ratio" }}</span>
+                </div>
+              </li>
+            {{ else }}
+              <li style="color: #ccc; list-style: none;">Nessun torrent in seed</li>
+            {{ end }}
+            </ul>
+
+
+        - type: custom-api
+          title: "Stopped"
+          cache: 5m
+          url: n8n webhook
+          template: |
+            <h3 style="font-size: 1.5rem; margin-bottom: 1rem;">Stoppati Recenti ({{ len (.JSON.Array "stopped") }})</h3>
+            <ul class="list list-gap-14 collapsible-container" data-collapse-after="5" style="padding: 0;">
+              {{ range .JSON.Array "stopped" }}
+                <li style="background: #2a2a40; padding: 1rem; border-radius: 0.75rem;">
+                  <strong style="font-size: 1.1rem;">{{ .String "name" }}</strong>
+                  <div style="margin-top: 0.5rem; font-size: 0.9rem; color: #ccc;">
+                    Stato: <span style="color: orange;">Stoppato</span><br/>
+                  </div>
+                </li>
+              {{ else }}
+                <li style="color: #ccc;">Nessun torrent stoppato</li>
+              {{ end }}
+            </ul>
+
+        - type: custom-api
+          title: "Errored"
+          cache: 5m
+          url: n8n webhook
+          template: |
+            <h3 style="font-size: 1.5rem; margin-bottom: 1rem;">Torrent in Errore ({{ len (.JSON.Array "errored") }})</h3>
+            <ul class="list list-gap-14 collapsible-container" data-collapse-after="1" style="padding: 0;">
+              {{ range .JSON.Array "errored" }}
+                <li style="background: #3a1e1e; padding: 1rem; border-radius: 0.75rem;">
+                  <strong style="font-size: 1.1rem;">{{ .String "name" }}</strong>
+                  <div style="margin-top: 0.5rem; font-size: 0.9rem; color: #f88;">
+                    Stato: <span style="color: red;">{{ .String "state" }}</span><br/>
+                    Progresso: <span style="color: #ffcc00;">{{ .String "progress" }}</span>
+                  </div>
+                </li>
+              {{ else }}
+                <li style="color: #ccc;">Nessun torrent in errore</li>
+              {{ end }}
             </ul>
 
   ```
