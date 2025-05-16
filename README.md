@@ -65,7 +65,7 @@ Remember to put your data like ip or credentials to the http request
 ## 📂 Nextup sonarr / radarr
 
 1. Download the
-[`sonarr_calendar.json`](https://github.com/whoissava/Glance-X-n8n/blob/main/sonarr-diskspace.json) and [`radarr_calendar.json`](https://github.com/whoissava/Glance-X-n8n/blob/main/radarr_calendar.json)  file
+[`sonarr_calendar.json`](https://github.com/whoissava/Glance-X-n8n/blob/main/sonarr_calendar.json) and [`radarr_calendar.json`](https://github.com/whoissava/Glance-X-n8n/blob/main/radarr_calendar.json)  file
 2. In your n8n dashboard, go to Workflows → Import From File
 3. Upload the downloaded JSON file
 4. Configure your Sonarr credentials in the HTTP Request node
