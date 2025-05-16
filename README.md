@@ -374,4 +374,8 @@ Remember to put your data like ip or credentials to the http request
 
   ```
 </details>
-Built by Sava, for the community.
+
+
+
+By Sava, for the community.
+(Powered from the fix and suggestions from the glance community)
