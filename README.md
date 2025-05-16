@@ -445,12 +445,11 @@ Remember to put your data like ip or credentials to the http request
 
 ![image](https://github.com/user-attachments/assets/bfa3df5f-60c3-4a60-9911-f560cf4f448f)
 
-1. Download the serverstats
+1. Download the 
 [`serverstats.json`](https://github.com/whoissava/Glance-X-n8n/blob/main/serverstats.json)file
 2. In your n8n dashboard, go to Workflows → Import From File
 3. Upload the downloaded JSON file
-4. Configure your ip in the HTTP Request node
-5. Add .Yaml Config to Glance 
+4. Add .Yaml Config to Glance 
 
 P.s. To allow n8n running in Docker to see the host machine's processes, you need to grant appropriate permissions to the Docker container. 
 
