@@ -374,8 +374,71 @@ Remember to put your data like ip or credentials to the http request
 
   ```
 </details>
+<details>
+  <summary><strong> Alternative status page </strong></summary>
+  
+  ```yaml
+- type: custom-api
+  title: qBittorrent
+  cache: 1s
+  url: n8n webhook
+  template: |
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; text-align: center; min-height: 10rem;">
+      <!-- BLOCK 1: ACTIVE -->
+      <div style="border: 0.15rem solid; border-radius: 1rem; padding: 1rem;">
+        <div class="color-highlight" style="font-size: 1.5rem; font-weight: bold;">{{ .JSON.Int "summary.downloading" }}</div>
+        <div class="color-highlight" style="opacity: 0.7;">Attive</div>
+        <div style="display: flex; justify-content: space-around; font-size: 1.25rem; margin-top: 0.5rem;">
+          <div>
+            <div class="color-highlight">{{ .JSON.Int "summary.paused" }}</div>
+            <div style="opacity: 0.6;">⏸️</div>
+          </div>
+          <div>
+            <div class="color-highlight">{{ .JSON.Int "summary.stopped" }}</div>
+            <div style="opacity: 0.6;">⏹️</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BLOCK 2: TOTAL -->
+      <div style="border: 0.15rem solid; border-radius: 1rem; padding: 1rem;">
+        <div class="color-positive" style="font-size: 1.5rem; font-weight: bold;">{{ .JSON.Int "summary.total" }}</div>
+        <div class="color-positive" style="opacity: 0.7;">Total</div>
+        <div style="display: flex; justify-content: space-around; font-size: 1.25rem; margin-top: 0.5rem;">
+          <div>
+            <div class="color-positive">{{ .JSON.Int "summary.seeding" }}</div>
+            <div style="opacity: 0.6;">🌱</div>
+          </div>
+          <div>
+            <div class="color-positive">{{ .JSON.Int "summary.completed" }}</div>
+            <div style="opacity: 0.6;">✅</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BLOCK 3: ERRORED + OTHERS -->
+      <div style="border: 0.15rem solid; border-radius: 1rem; padding: 1rem;">
+        <div class="color-negative" style="font-size: 1.5rem; font-weight: bold;">{{ .JSON.Int "summary.errored" }}</div>
+        <div class="color-negative" style="opacity: 0.7;">Error</div>
+        <div style="display: flex; justify-content: center; font-size: 1.25rem; margin-top: 0.5rem;">
+          <div>
+            <div class="color-negative">{{ .JSON.Int "summary.others" }}</div>
+            <div style="opacity: 0.6;">⚠️</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- FOOTER: SPEED -->
+    <div style="margin-top: 1rem; padding-top: 0.5rem; text-align: center; font-size: 1.25rem; opacity: 0.8; border: 0.2rem solid; border-radius: 1rem; padding: 1rem;">
+      ⬇️ <strong class="color-positive">{{ .JSON.String "summary.totalDownloadSpeed" }}</strong> &nbsp; | &nbsp;
+      ⬆️ <strong class="color-negative">{{ .JSON.String "summary.totalUploadSpeed" }}</strong>
+    </div>
 
 
+  ```
+</details>
 
 By Sava, for the community.
 (Powered from the fix and suggestions from the glance community)
