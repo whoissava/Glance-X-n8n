@@ -451,7 +451,8 @@ Remember to put your data like ip or credentials to the http request
 3. Upload the downloaded JSON file
 4. Add .Yaml Config to Glance 
 
-P.s. To allow n8n running in Docker to see the host machine's processes, you need to grant appropriate permissions to the Docker container. 
+P.s. To allow n8n running in Docker to see the host machine's processes, you need to grant appropriate permissions to the Docker container and install python inside n8n docker
+
 
 
 <details>
