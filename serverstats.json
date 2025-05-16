@@ -1,0 +1,420 @@
+{
+  "name": "server stats",
+  "nodes": [
+    {
+      "parameters": {
+        "functionCode": "try {\n  // Get current metrics or parse them\n  let currentMetrics;\n  if ($json.stdout) {\n    // Parse command output\n    currentMetrics = JSON.parse($json.stdout);\n  } else if ($json.timestamp) {\n    // Metrics are already parsed\n    currentMetrics = $json;\n  } else {\n    throw new Error('Invalid metrics data');\n  }\n  \n  // Get history from workflow variable\n  let history = [];\n  \n  try {\n    if ($workflow && $workflow.variables && $workflow.variables.statsHistory) {\n      if (typeof $workflow.variables.statsHistory === 'string') {\n        try {\n          history = JSON.parse($workflow.variables.statsHistory);\n        } catch (parseErr) {\n          console.log('Error parsing history string:', parseErr.message);\n          history = [];\n        }\n      } else if ($workflow.variables.statsHistory.value) {\n        history = $workflow.variables.statsHistory.value;\n      }\n    }\n  } catch (e) {\n    console.log('Error accessing history variable:', e.message);\n  }\n  \n  // Ensure history is an array\n  if (!Array.isArray(history)) {\n    history = [];\n  }\n  \n  // Extract the important metrics for time series\n  const timeSeriesData = {\n    timestamp: currentMetrics.timestamp,\n    cpu: {\n      load: currentMetrics.cpu?.load || 0,\n      temperature: currentMetrics.cpu?.temperature || 'N/A'\n    },\n    memory: {\n      usage: currentMetrics.memory?.usage || 0\n    },\n    disk: {\n      usage: currentMetrics.disk?.usage || 0\n    },\n    network: {\n      bytesIn: currentMetrics.network?.bytesIn || 0,\n      bytesOut: currentMetrics.network?.bytesOut || 0\n    },\n    system: {\n      loadAverage: currentMetrics.system?.loadAverage || { '1min': 0, '5min': 0, '15min': 0 }\n    }\n  };\n  \n  // Add new data point to history\n  history.push(timeSeriesData);\n  \n  // Keep only the last 144 data points (10 min intervals = 24 hours of data)\n  // You can increase this to store more history, but mind the variable size limit\n  const maxDataPoints = 144;\n  if (history.length > maxDataPoints) {\n    history = history.slice(history.length - maxDataPoints);\n  }\n  \n  // Store updated history in workflow variable\n  try {\n    if ($workflow && $workflow.variables) {\n      $workflow.variables.statsHistory = JSON.stringify(history);\n    } else {\n      console.log('Warning: Could not set statsHistory, $workflow.variables is not available');\n    }\n  } catch (varErr) {\n    console.log('Error setting workflow variable:', varErr.message);\n  }\n  \n  // Return both current data and historical data\n  return [{\n    json: {\n      current: currentMetrics,\n      history: history,\n      timestamp: new Date().toISOString(),\n      historyCount: history.length\n    }\n  }];\n} catch (error) {\n  return [{\n    json: {\n      error: true,\n      message: error.message,\n      timestamp: new Date().toISOString()\n    }\n  }];\n}"
+      },
+      "name": "Update History",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        980,
+        540
+      ],
+      "id": "4addc3dc-954c-4143-ae3e-7795ef13798c"
+    },
+    {
+      "parameters": {
+        "functionCode": "try {\n  // Get metrics data from the main flow\n  let currentMetrics;\n  const metricsNode = $node['Get Real Server Metrics'];\n  \n  if (metricsNode && metricsNode.json && metricsNode.json.stdout) {\n    // Parse the command output\n    currentMetrics = JSON.parse(metricsNode.json.stdout);\n  } else {\n    // Trigger the command to get fresh metrics\n    throw new Error('Need to run metrics collection node');\n  }\n  \n  return [{ json: currentMetrics }];\n} catch (error) {\n  // If we can't get the metrics, we should call the command directly\n  return $node['Get Real Server Metrics'].first().json;\n}"
+      },
+      "name": "Get Current Metrics",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        820,
+        540
+      ],
+      "id": "c38c2fca-07f3-4fa8-8311-177f4c9c824a"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Access the history variable or initialize empty array\nlet history = [];\n\ntry {\n  if ($workflow && $workflow.variables && $workflow.variables.statsHistory) {\n    if (typeof $workflow.variables.statsHistory === 'string') {\n      try {\n        history = JSON.parse($workflow.variables.statsHistory);\n      } catch (parseErr) {\n        console.log('Error parsing history string:', parseErr.message);\n        history = [];\n      }\n    } else if ($workflow.variables.statsHistory.value) {\n      history = $workflow.variables.statsHistory.value;\n    }\n  }\n} catch (e) {\n  console.log('Error accessing history variable:', e.message);\n}\n\n// Ensure history is an array\nif (!Array.isArray(history)) {\n  history = [];\n}\n\n// We need to get fresh metrics\nreturn [{ json: { needsUpdate: true } }];"
+      },
+      "name": "Get History",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        680,
+        540
+      ],
+      "id": "1fef3fb1-597f-4645-b093-a1ae67c0cc94"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "name": "Every 10 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        520,
+        540
+      ],
+      "id": "ab1005c9-e435-4167-8096-ea17b88b3c5b"
+    },
+    {
+      "parameters": {
+        "functionCode": "try {\n  // Get the metrics data\n  let m;\n  \n  // If we have stdout from the command, parse it\n  if ($json.stdout) {\n    try {\n      m = JSON.parse($json.stdout);\n    } catch (e) {\n      throw new Error(`Failed to parse command output: ${e.message}`);\n    }\n  } else {\n    m = $json;\n  }\n  \n  // Add a defensive check to ensure m is an object\n  if (!m || typeof m !== 'object') {\n    throw new Error('Invalid metrics data');\n  }\n  \n  // Check if there was an error during command execution\n  if (m.error) {\n    throw new Error(`Error collecting metrics: ${m.message}`);\n  }\n  \n  // Define warning thresholds\n  const thresholds = { \n    cpu: 0.8, \n    mem: 0.85, \n    disk: 0.9 \n  };\n  \n  // Calculate health status\n  m.health = { \n    status: 'healthy', \n    warnings: [],\n    statusCode: 0 // 0=healthy, 1=warning, 2=critical\n  };\n  \n  // Check CPU usage\n  if (m.cpu && m.cpu.load > thresholds.cpu) {\n    m.health.status = 'warning';\n    m.health.statusCode = 1;\n    m.health.warnings.push('High CPU usage');\n  }\n  \n  // Check memory usage\n  if (m.memory && m.memory.usage > thresholds.mem) {\n    m.health.status = 'warning';\n    m.health.statusCode = 1;\n    m.health.warnings.push('High memory usage');\n  }\n  \n  // Check disk usage\n  if (m.disk && m.disk.usage > thresholds.disk) {\n    m.health.status = 'warning';\n    m.health.statusCode = 1;\n    m.health.warnings.push('High disk usage');\n  }\n  \n  // Format display values for human readability\n  m.display = {\n    memory: {\n      total: m.memory ? `${(m.memory.total / (1024 ** 3)).toFixed(2)} GB` : 'N/A',\n      used: m.memory ? `${(m.memory.used / (1024 ** 3)).toFixed(2)} GB` : 'N/A',\n      available: m.memory ? `${(m.memory.free / (1024 ** 3)).toFixed(2)} GB` : 'N/A',\n      usage: m.memory ? `${(m.memory.usage * 100).toFixed(2)}%` : 'N/A'\n    },\n    disk: {\n      total: m.disk ? `${(m.disk.total / (1024 ** 3)).toFixed(2)} GB` : 'N/A',\n      used: m.disk ? `${(m.disk.used / (1024 ** 3)).toFixed(2)} GB` : 'N/A',\n      available: m.disk ? `${(m.disk.available / (1024 ** 3)).toFixed(2)} GB` : 'N/A',\n      usage: m.disk ? `${(m.disk.usage * 100).toFixed(2)}%` : 'N/A'\n    },\n    cpu: {\n      load: m.cpu ? `${(m.cpu.load * 100).toFixed(2)}%` : 'N/A',\n      cores: m.cpu ? m.cpu.cores : 'N/A',\n      temperature: m.cpu ? m.cpu.temperature : 'N/A'\n    },\n    system: {\n      uptimeString: m.system ? (() => {\n        const up = m.system.uptime;\n        const d = Math.floor(up / 86400);\n        const h = Math.floor((up % 86400) / 3600);\n        const min = Math.floor((up % 3600) / 60);\n        const s = Math.floor(up % 60);\n        return `${d}d ${h}h ${min}m ${s}s`;\n      })() : 'N/A'\n    },\n    network: {\n      bytesIn: m.network ? `${(m.network.bytesIn / 1024).toFixed(2)} KB/s` : 'N/A',\n      bytesOut: m.network ? `${(m.network.bytesOut / 1024).toFixed(2)} KB/s` : 'N/A',\n      packetLoss: m.network ? `${(m.network.packetLoss * 100).toFixed(2)}%` : 'N/A'\n    }\n  };\n  \n  // Add metadata\n  m.meta = {\n    generated: new Date().toISOString(),\n    source: 'n8n-server-stats-webhook',\n    version: '1.0.0'\n  };\n  \n  // Safely set the workflow variable\n  try {\n    if ($workflow && $workflow.variables) {\n      const cacheData = { ...m, timestamp: new Date().toISOString() };\n      // Store as a properly formatted JSON string\n      $workflow.variables.statsCache = JSON.stringify(cacheData);\n    } else {\n      console.log('Warning: Could not set statsCache, $workflow.variables is not available');\n    }\n  } catch (varErr) {\n    console.log('Error setting workflow variable:', varErr.message);\n  }\n  \n  // Return the complete, processed metrics\n  return [{ json: m }];\n} catch (err) {\n  // Handle any errors and return error data\n  return [{ \n    json: { \n      error: true, \n      message: err.message, \n      timestamp: new Date().toISOString(),\n      stackTrace: err.stack\n    }\n  }];\n}"
+      },
+      "name": "Process Metrics",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        340
+      ],
+      "id": "ff18c0b9-326b-40c1-b71a-925d7bdbce0a"
+    },
+    {
+      "parameters": {
+        "command": "node -e '\n  const os   = require(\"os\");\n  const fs   = require(\"fs\");\n  const exec = require(\"child_process\").execSync;\n\n  // 1) Inizializzo metrics con tutti i gruppi\n  const metrics = {\n    timestamp: new Date().toISOString(),\n    system:   {},\n    cpu:      {},\n    memory:   {},\n    disk:     {},\n    network:  {}\n  };\n\n  // 2) Popolo system\n  metrics.system.hostname    = os.hostname();\n  metrics.system.os          = `${os.type()} ${os.release()}`;\n  metrics.system.uptime      = os.uptime();\n  const [l1,l5,l15]          = os.loadavg();\n  metrics.system.loadAverage = { \"1min\": l1, \"5min\": l5, \"15min\": l15 };\n\n  // 3) Popolo cpu\n  metrics.cpu.cores = os.cpus().length;\n  {\n    let totalIdle = 0, totalTick = 0;\n    os.cpus().forEach(cpu => {\n      for (const t in cpu.times) totalTick += cpu.times[t];\n      totalIdle += cpu.times.idle;\n    });\n    metrics.cpu.load = 1 - totalIdle/totalTick;\n  }\n  try {\n    const t = exec(\"cat /sys/class/thermal/thermal_zone0/temp\")\n                .toString().trim();\n    metrics.cpu.temperature = `${(parseInt(t,10)/1000).toFixed(1)}°C`;\n  } catch { metrics.cpu.temperature = \"N/A\"; }\n\n  // 4) Popolo memory\n  metrics.memory.total = os.totalmem();\n  metrics.memory.free  = os.freemem();\n  metrics.memory.used  = metrics.memory.total - metrics.memory.free;\n  metrics.memory.usage = metrics.memory.used/metrics.memory.total;\n\n  // 5) Popolo disk\n  try {\n    const parts = exec(\"df -k / | tail -1\").toString().trim().split(/\\s+/);\n    metrics.disk.total     = parseInt(parts[1],10)*1024;\n    metrics.disk.used      = parseInt(parts[2],10)*1024;\n    metrics.disk.available = parseInt(parts[3],10)*1024;\n    metrics.disk.usage     = metrics.disk.used/metrics.disk.total;\n  } catch {\n    metrics.disk = { total:0, used:0, available:0, usage:0 };\n  }\n\n  // 6) Popolo network\n  try {\n    metrics.network.connections =\n      parseInt(exec(\"netstat -an | grep ESTABLISHED | wc -l\").toString(),10);\n    const dev = fs.readFileSync(\"/proc/net/dev\",\"utf8\")\n                  .split(\"\\n\").slice(2);\n    let inB=0, outB=0;\n    dev.forEach(l => {\n      const cols = l.trim().split(/\\s+/);\n      if (cols.length>=10) {\n        inB  += parseInt(cols[1],10);\n        outB += parseInt(cols[9],10);\n      }\n    });\n    metrics.network.bytesIn  = inB;\n    metrics.network.bytesOut = outB;\n    try {\n      const ping = exec(\"ping -c 5 -q 8.8.8.8\").toString();\n      const m = ping.match(/(\\d+)% packet loss/);\n      metrics.network.packetLoss = m ? parseInt(m[1],10)/100 : 0;\n    } catch { metrics.network.packetLoss = 0; }\n  } catch {\n    metrics.network = { connections:0, bytesIn:0, bytesOut:0, packetLoss:0 };\n  }\n\n  // Stampo il JSON formattato\n  console.log(JSON.stringify(metrics, null, 2));\n'\n"
+      },
+      "name": "Get Real Server Metrics",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        980,
+        340
+      ],
+      "id": "a2296c18-132e-4cdf-bb13-b795482b3a93"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ !$json.needsUpdate }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "Has Cache?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        820,
+        340
+      ],
+      "id": "c594ae5c-be19-4b49-8a8f-2fe8855ad483"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Check if we should use cached data\nlet cache;\ntry {\n  // Safely try to access the cache variable\n  if ($workflow && $workflow.variables && $workflow.variables.statsCache) {\n    // Handle both string and object formats\n    if (typeof $workflow.variables.statsCache === 'string') {\n      try {\n        cache = JSON.parse($workflow.variables.statsCache);\n      } catch (parseErr) {\n        console.log('Error parsing cache string:', parseErr.message);\n        cache = null;\n      }\n    } else if ($workflow.variables.statsCache.value) {\n      cache = $workflow.variables.statsCache.value;\n    }\n  }\n} catch (e) {\n  console.log('Error accessing cache:', e.message);\n  cache = null;\n}\n\n// Check if cache is valid and not expired\nconst now = new Date();\nif (cache && cache.timestamp) {\n  try {\n    const cacheTime = new Date(cache.timestamp);\n    const diffSec = (now - cacheTime) / 1000;\n    if (diffSec < 30) {\n      // Cache is valid, use it\n      return [{ json: { ...cache, fromCache: true } }];\n    }\n  } catch (e) {\n    console.log('Error processing cache timestamp:', e.message);\n  }\n}\n\n// Cache is invalid or expired, request new data\nreturn [{ json: { needsUpdate: true } }];"
+      },
+      "name": "Check Cache",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        680,
+        340
+      ],
+      "id": "0f19128a-74df-44fa-b9d5-100896cfa63f"
+    },
+    {
+      "parameters": {
+        "path": "server-stats",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        520,
+        340
+      ],
+      "id": "295814b8-561a-45c1-9438-6036b13e97aa",
+      "webhookId": "4562c606-c35e-4a78-8749-868365373ecf"
+    },
+    {
+      "parameters": {
+        "content": "Sopra per processi, sotto per stats, verifica fix immagine\n"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "eea64325-5cfa-4198-9027-c4c5d40df01a",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "command": "echo \"import psutil, json\n\n# Imposta il percorso del file system per i processi\npsutil.PROCFS_PATH = '/host_proc'\n\n# Ottieni i processi ordinati per utilizzo di memoria\nprocessi = sorted(\n    (p.info for p in psutil.process_iter(['pid', 'name', 'memory_percent'])\n     if p.info['memory_percent'] is not None),\n    key=lambda p: p['memory_percent'],\n    reverse=True\n)\n\n# Stampa i primi 5 processi in formato JSON\nprint(json.dumps(processi[:8]))\" > /tmp/top_processi.py\n"
+      },
+      "id": "789550b3-b13a-4bd1-9a4e-93ff7460f757",
+      "name": "Write Python Script",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        880,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "command": "python3 /tmp/top_processi.py"
+      },
+      "id": "53c3cef4-9c71-46fa-8029-bcf566daef93",
+      "name": "Run Python Script",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1080,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const output = $json[\"stdout\"];\n\nlet data;\ntry {\n  data = JSON.parse(output);\n} catch (e) {\n  data = { error: \"Errore nel parsing JSON\", raw: output };\n}\n\nreturn [\n  {\n    json: {\n      timestamp: new Date().toISOString(),\n      topProcesses: data,\n      note: \"Processi con maggiore utilizzo memoria\"\n    }\n  }\n];"
+      },
+      "id": "fbdd46b0-aada-4bc4-b3d9-722449aff8da",
+      "name": "Parse JSON Output",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "path": "3b4da5f9-10da-4c1c-8743-2566618bd3e2",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        620,
+        80
+      ],
+      "id": "2a2d13ec-0fc4-4819-b4de-e14fab359630",
+      "name": "Webhook",
+      "webhookId": "3b4da5f9-10da-4c1c-8743-2566618bd3e2"
+    },
+    {
+      "parameters": {
+        "command": "echo \"import psutil, json, time\n\n# Imposta il percorso del file system per i processi\npsutil.PROCFS_PATH = '/host_proc'\n\n# Richiede una misurazione iniziale di CPU\nfor p in psutil.process_iter():\n    try:\n        p.cpu_percent(interval=None)\n    except Exception:\n        pass\n\n# Attende un intervallo per misurare l'utilizzo della CPU\ntime.sleep(1)\n\n# Ottieni i processi ordinati per utilizzo di CPU\nprocessi = sorted(\n    (p.info for p in psutil.process_iter(['pid', 'name', 'cpu_percent'])\n     if p.info['cpu_percent'] is not None),\n    key=lambda p: p['cpu_percent'],\n    reverse=True\n)\n\n# Stampa i primi 5 processi in formato JSON\nprint(json.dumps(processi[:8]))\n\" > /tmp/cpu_processi.py\n"
+      },
+      "id": "93bcf993-8b86-4603-912b-ee305d6e49c9",
+      "name": "Write Python Script1",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        860,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "command": "python3 /tmp/cpu_processi.py"
+      },
+      "id": "3ae02f09-dfa8-4400-aa78-f5eaf732022e",
+      "name": "Run Python Script1",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1060,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const output = $json[\"stdout\"];\n\nlet data;\ntry {\n  data = JSON.parse(output);\n} catch (e) {\n  data = { error: \"Errore nel parsing JSON\", raw: output };\n}\n\nreturn [\n  {\n    json: {\n      timestamp: new Date().toISOString(),\n      topProcesses: data,\n      note: \"Processi con maggiore utilizzo memoria\"\n    }\n  }\n];"
+      },
+      "id": "34a9980c-91c5-4cb2-8259-6cf7289fd505",
+      "name": "Parse JSON Output1",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1260,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "path": "13a5a692-b551-4c20-9265-c8139cdfef74",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        540,
+        -120
+      ],
+      "id": "9463378e-fafc-49b3-bf31-9008d67150cd",
+      "name": "cpu",
+      "webhookId": "13a5a692-b551-4c20-9265-c8139cdfef74"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Current Metrics": {
+      "main": [
+        [
+          {
+            "node": "Update History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get History": {
+      "main": [
+        [
+          {
+            "node": "Get Current Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 10 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Get History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Real Server Metrics": {
+      "main": [
+        [
+          {
+            "node": "Process Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Cache?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Get Real Server Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Cache": {
+      "main": [
+        [
+          {
+            "node": "Has Cache?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Python Script": {
+      "main": [
+        [
+          {
+            "node": "Run Python Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Python Script": {
+      "main": [
+        [
+          {
+            "node": "Parse JSON Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Write Python Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Python Script1": {
+      "main": [
+        [
+          {
+            "node": "Run Python Script1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Python Script1": {
+      "main": [
+        [
+          {
+            "node": "Parse JSON Output1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cpu": {
+      "main": [
+        [
+          {
+            "node": "Write Python Script1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "18851a68-c512-4cd1-9215-a42a4ba3110d",
+  "meta": {
+    "instanceId": "353d63965fb91315aee01d430a5a4b0ffda233e14b2e5efa4f65f95eef93d0e5"
+  },
+  "id": "XhcDALW4yMaxasd1",
+  "tags": []
+}
