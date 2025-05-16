@@ -375,7 +375,7 @@ Remember to put your data like ip or credentials to the http request
   ```
 </details>
 <details>
-  <summary><strong> Alternative status page </strong></summary>
+  <summary><strong> Alternative status page by JDcool00 </strong></summary>
   
   ```yaml
 - type: custom-api
